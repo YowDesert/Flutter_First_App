@@ -192,7 +192,7 @@ class BottomActionBar extends StatelessWidget {
     super.key,
     this.height = 60,
     this.padding = 8,
-    this.gap = 4,
+    this.gap = 6,
     this.borderRadius = 16,
     this.iconSize = 18,
     this.fontSize = 11,
@@ -271,13 +271,15 @@ class BottomActionBar extends StatelessWidget {
             SizedBox(width: gap),
             Expanded(
               child: _ActionPill(
-                icon: Icons.redo_rounded,
-                label: 'Redo',
+                icon: Icons.lightbulb_outline_rounded,
+                label: 'Hint',
                 selected: false,
-                enabled: controller.canRedo,
+                enabled: controller.canUseHint,
+                accentColor: const Color(0xFFC19538),
+                subtleTint: const Color(0xFFFFF1CA),
                 iconSize: iconSize,
                 fontSize: fontSize,
-                onTap: controller.canRedo ? controller.redo : null,
+                onTap: controller.canUseHint ? controller.useHint : null,
               ),
             ),
             SizedBox(width: gap),
@@ -300,7 +302,7 @@ class BottomActionBar extends StatelessWidget {
   }
 }
 
-class _ActionPill extends StatelessWidget {
+class _ActionPill extends StatefulWidget {
   const _ActionPill({
     required this.icon,
     required this.label,
@@ -310,6 +312,7 @@ class _ActionPill extends StatelessWidget {
     required this.fontSize,
     required this.onTap,
     this.accentColor = const Color(0xFF357DE6),
+    this.subtleTint,
   });
 
   final IconData icon;
@@ -320,93 +323,125 @@ class _ActionPill extends StatelessWidget {
   final double fontSize;
   final VoidCallback? onTap;
   final Color accentColor;
+  final Color? subtleTint;
+
+  @override
+  State<_ActionPill> createState() => _ActionPillState();
+}
+
+class _ActionPillState extends State<_ActionPill> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final background = !enabled
+    final background = !widget.enabled
         ? const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [Color(0xFFF1F4F8), Color(0xFFE8EDF3)],
           )
-        : selected
+        : widget.selected
             ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [accentColor.withValues(alpha: 0.82), accentColor],
+                colors: [
+                  widget.accentColor.withValues(alpha: 0.82),
+                  widget.accentColor,
+                ],
               )
-            : const LinearGradient(
+            : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFFFFFFF), Color(0xFFF1F5FA)],
+                colors: [
+                  const Color(0xFFFFFFFF),
+                  widget.subtleTint?.withValues(alpha: 0.36) ??
+                      const Color(0xFFF1F5FA),
+                ],
               );
-    final foreground = !enabled
+    final foreground = !widget.enabled
         ? const Color(0xFF94A3B8)
-        : selected
+        : widget.selected
             ? Colors.white
             : const Color(0xFF2A466A);
-    final borderColor = !enabled
+    final borderColor = !widget.enabled
         ? const Color(0xFFDBE3EC)
-        : selected
-            ? accentColor.withValues(alpha: 0.55)
-            : const Color(0xFFE0E9F2);
-    final shadowColor = selected
-        ? accentColor.withValues(alpha: 0.26)
-        : const Color(0x146985A4);
+        : widget.selected
+            ? widget.accentColor.withValues(alpha: 0.55)
+            : (widget.subtleTint?.withValues(alpha: 0.58) ??
+                const Color(0xFFE0E9F2));
+    final shadowColor = widget.selected
+        ? widget.accentColor.withValues(alpha: 0.26)
+        : (widget.subtleTint?.withValues(alpha: 0.26) ??
+            const Color(0x146985A4));
+    final scale = _pressed && widget.enabled ? 0.97 : 1.0;
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 120),
-      opacity: enabled ? 1 : 0.5,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: background,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: selected ? 12 : 10,
-                offset: Offset(0, selected ? 5 : 4),
-              ),
-            ],
-          ),
-          child: InkWell(
-            onTap: enabled ? onTap : null,
-            borderRadius: BorderRadius.circular(14),
-            splashColor: Colors.white.withValues(alpha: 0.15),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: Icon(
-                          icon,
-                          key: ValueKey('$label-$selected'),
-                          size: iconSize,
-                          color: foreground,
+      opacity: widget.enabled ? 1 : 0.5,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOutCubic,
+        scale: scale,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            decoration: BoxDecoration(
+              gradient: background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: _pressed ? 7 : (widget.selected ? 12 : 10),
+                  offset: Offset(0, _pressed ? 2 : (widget.selected ? 5 : 4)),
+                ),
+              ],
+            ),
+            child: InkWell(
+              onTap: widget.enabled ? widget.onTap : null,
+              onTapDown: widget.enabled
+                  ? (_) => setState(() => _pressed = true)
+                  : null,
+              onTapUp: widget.enabled
+                  ? (_) => setState(() => _pressed = false)
+                  : null,
+              onTapCancel: widget.enabled
+                  ? () => setState(() => _pressed = false)
+                  : null,
+              borderRadius: BorderRadius.circular(14),
+              splashColor: Colors.white.withValues(alpha: 0.15),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: Icon(
+                            widget.icon,
+                            key: ValueKey('${widget.label}-${widget.selected}'),
+                            size: widget.iconSize,
+                            color: foreground,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        selected ? '$label On' : label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textScaler: TextScaler.noScaling,
-                        style: TextStyle(
-                          color: foreground,
-                          fontWeight: FontWeight.w700,
-                          fontSize: fontSize,
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.selected ? '${widget.label} On' : widget.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textScaler: TextScaler.noScaling,
+                          style: TextStyle(
+                            color: foreground,
+                            fontWeight: FontWeight.w700,
+                            fontSize: widget.fontSize,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

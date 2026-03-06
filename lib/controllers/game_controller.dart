@@ -16,6 +16,7 @@ class GameController extends ChangeNotifier {
     _restoreFromPrefs();
   }
 
+  static const int? _hintLimit = null;
   static const _settingsKey = 'settings_v2';
   static const _dailyProgressKey = 'daily_progress_v2';
   static const _activeSessionKey = 'active_session_v2';
@@ -48,6 +49,29 @@ class GameController extends ChangeNotifier {
   bool get hasActiveSession => _session != null;
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
+  int get hintCount => _session?.hintsUsed ?? 0;
+  int? get hintLimit => _hintLimit;
+  int? get remainingHints {
+    final current = _session;
+    final limit = _hintLimit;
+    if (current == null || limit == null) {
+      return null;
+    }
+    final remaining = limit - current.hintsUsed;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  bool get canUseHint {
+    final current = _session;
+    if (current == null || current.isSolved) {
+      return false;
+    }
+    final remaining = remainingHints;
+    if (remaining != null && remaining <= 0) {
+      return false;
+    }
+    return _findHintTargetIndex(current) != null;
+  }
 
   void startQuickGame(PuzzleDifficulty difficulty) {
     final seed = DateTime.now().microsecondsSinceEpoch;
@@ -167,6 +191,50 @@ class GameController extends ChangeNotifier {
     _postValueMutation(move.index);
   }
 
+  void useHint() {
+    final current = _session;
+    if (current == null) return;
+    if (current.isSolved) {
+      _pushMessage('Board is already complete.');
+      notifyListeners();
+      return;
+    }
+    final remaining = remainingHints;
+    if (remaining != null && remaining <= 0) {
+      _pushMessage('No hints left.');
+      notifyListeners();
+      return;
+    }
+
+    final targetIndex = _findHintTargetIndex(current);
+    if (targetIndex == null) {
+      _pushMessage('No hint available right now.');
+      notifyListeners();
+      return;
+    }
+
+    final solutionValue = current.puzzle.solutionValueAt(targetIndex);
+    final position = CellPosition.fromIndex(targetIndex);
+    _pushMessage(
+      'Hint: R${position.row + 1}C${position.col + 1} = $solutionValue',
+    );
+
+    if (current.selectedIndex != targetIndex) {
+      _session = current.copyWith(selectedIndex: targetIndex);
+    }
+
+    _applyMove(
+      MoveRecord(
+        index: targetIndex,
+        previousValue: current.values[targetIndex],
+        nextValue: solutionValue,
+        previousNotes: Set<int>.from(current.notes[targetIndex]),
+        nextNotes: <int>{},
+      ),
+      consumedHint: true,
+    );
+  }
+
   int? checkBoard() {
     final current = _session;
     if (current == null) return null;
@@ -215,7 +283,8 @@ class GameController extends ChangeNotifier {
 
   void _restoreFromPrefs() {
     _settings = GameSettings.fromStorage(_prefs.getString(_settingsKey));
-    _dailyProgress = DailyProgress.fromStorage(_prefs.getString(_dailyProgressKey));
+    _dailyProgress =
+        DailyProgress.fromStorage(_prefs.getString(_dailyProgressKey));
     final rawSession = _prefs.getString(_activeSessionKey);
     if (rawSession != null && rawSession.isNotEmpty) {
       _session = GameSession.fromStorage(rawSession);
@@ -258,7 +327,7 @@ class GameController extends ChangeNotifier {
     });
   }
 
-  void _applyMove(MoveRecord move) {
+  void _applyMove(MoveRecord move, {bool consumedHint = false}) {
     final current = _session;
     if (current == null) return;
     final didChange = move.previousValue != move.nextValue ||
@@ -276,7 +345,40 @@ class GameController extends ChangeNotifier {
       value: move.nextValue,
       notes: move.nextNotes,
     );
+    if (consumedHint) {
+      final updated = _session;
+      if (updated != null) {
+        _session = updated.copyWith(hintsUsed: updated.hintsUsed + 1);
+      }
+    }
     _postValueMutation(move.index);
+  }
+
+  int? _findHintTargetIndex(GameSession current) {
+    final selected = current.selectedIndex;
+    if (selected != null && _isHintCandidate(current, selected)) {
+      return selected;
+    }
+
+    for (var index = 0; index < 81; index++) {
+      if (_isHintCandidate(current, index) && current.values[index] == 0) {
+        return index;
+      }
+    }
+
+    for (var index = 0; index < 81; index++) {
+      if (_isHintCandidate(current, index)) {
+        return index;
+      }
+    }
+    return null;
+  }
+
+  bool _isHintCandidate(GameSession current, int index) {
+    if (current.isGiven(index)) {
+      return false;
+    }
+    return current.values[index] != current.puzzle.solutionValueAt(index);
   }
 
   GameSession _replaceCell(
@@ -348,7 +450,8 @@ class GameController extends ChangeNotifier {
       case ErrorMode.checkOnly:
         _visibleErrorIndexes = _visibleErrorIndexes
             .where((index) => current.values[index] != 0)
-            .where((index) => current.values[index] != current.puzzle.solutionValueAt(index))
+            .where((index) =>
+                current.values[index] != current.puzzle.solutionValueAt(index))
             .toSet();
         break;
       case ErrorMode.off:

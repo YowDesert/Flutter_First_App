@@ -57,6 +57,65 @@ void main() {
       expect(controller.visibleErrorIndexes, contains(index));
     });
 
+    test('hint fills selected cell and increments hint counter', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final controller = GameController(prefs);
+
+      controller.startQuickGame(PuzzleDifficulty.easy);
+      final index = _findEditableIndex(controller);
+      controller.selectCell(index ~/ 9, index % 9);
+
+      controller.useHint();
+
+      expect(
+          controller.session!.values[index], _correctDigit(controller, index));
+      expect(controller.session!.hintsUsed, 1);
+      expect(controller.canUndo, isTrue);
+
+      controller.undo();
+
+      expect(controller.session!.values[index], 0);
+      expect(controller.session!.hintsUsed, 1);
+    });
+
+    test('hint auto-selects an empty editable cell when none is selected',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final controller = GameController(prefs);
+
+      controller.startQuickGame(PuzzleDifficulty.medium);
+      expect(controller.session!.selectedIndex, isNull);
+
+      controller.useHint();
+
+      final hintedIndex = controller.session!.selectedIndex;
+      expect(hintedIndex, isNotNull);
+      expect(controller.session!.isGiven(hintedIndex!), isFalse);
+      expect(
+        controller.session!.values[hintedIndex],
+        _correctDigit(controller, hintedIndex),
+      );
+      expect(controller.session!.hintsUsed, 1);
+    });
+
+    test('hint handles completed board without errors', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final controller = GameController(prefs);
+
+      controller.startQuickGame(PuzzleDifficulty.easy);
+      while (controller.canUseHint) {
+        controller.useHint();
+      }
+
+      expect(controller.session, isNull);
+      expect(controller.lastResult, isNotNull);
+      expect(controller.lastResult!.hintsUsed, greaterThan(0));
+      expect(() => controller.useHint(), returnsNormally);
+    });
+
     test('daily challenge is deterministic for the same date', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();

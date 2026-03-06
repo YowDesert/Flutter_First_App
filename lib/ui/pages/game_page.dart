@@ -417,7 +417,7 @@ class _GameLayoutMetrics {
     );
 
     final bottomBarPadding = (7.0 - compactT).clamp(4.0, 7.0).toDouble();
-    final bottomBarGap = (6.0 - compactT).clamp(3.0, 6.0).toDouble();
+    final bottomBarGap = (7.0 - compactT).clamp(4.0, 7.0).toDouble();
     final bottomIconSize =
         ((19.0 - (compactT * 1.2)) / clampedScale).clamp(15.0, 19.0);
     final bottomFontSize =
