@@ -22,6 +22,10 @@ class Solver {
 
   /// count solutions up to [limit]; stops when reached.
   int countSolutions(Board b, {int limit = 2}) {
+    if (!_hasValidState(b)) {
+      return 0;
+    }
+
     int count = 0;
     void dfs(Board cur) {
       if (count >= limit) return;
@@ -29,6 +33,7 @@ class Solver {
         for (int c = 0; c < 9; c++) {
           if (cur.at(r, c).isEmpty) {
             for (int v = 1; v <= 9; v++) {
+              if (count >= limit) return;
               if (cur.isValidMove(r, c, v)) {
                 cur.at(r, c).value = v;
                 dfs(cur);
@@ -44,5 +49,23 @@ class Solver {
 
     dfs(Board.clone(b));
     return count;
+  }
+
+  bool _hasValidState(Board board) {
+    for (int row = 0; row < 9; row++) {
+      for (int col = 0; col < 9; col++) {
+        final value = board.at(row, col).value;
+        if (value == 0) {
+          continue;
+        }
+        board.at(row, col).value = 0;
+        final isValid = board.isValidMove(row, col, value);
+        board.at(row, col).value = value;
+        if (!isValid) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }

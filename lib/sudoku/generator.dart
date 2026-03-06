@@ -10,32 +10,50 @@ class Generator {
   Generator(int seed) : _rand = Random(seed);
 
   Board generate(Difficulty diff) {
+    final config = diff.config;
     Board b = Board(0);
     _fill(b);
     solution = Board.clone(b);
 
-    // dig holes
-    int holes = diff == Difficulty.easy
-        ? 40
-        : diff == Difficulty.medium
-        ? 50
-        : 60;
-    List<int> cells = List.generate(81, (i) => i)..shuffle(_rand);
+    final holes = config.holes;
+    final cells = List.generate(81, (i) => i)..shuffle(_rand);
     Solver solver = Solver();
-    for (int idx in cells) {
-      if (holes == 0) break;
-      int r = idx ~/ 9, c = idx % 9;
-      int backup = b.at(r, c).value;
-      b.at(r, c).value = 0;
+
+    var removed = 0;
+    final visited = <int>{};
+    for (final idx in cells) {
+      if (removed >= holes) break;
+      if (visited.contains(idx)) continue;
+
+      final pair = config.useSymmetry ? _mirrorIndex(idx) : idx;
+      final targets = pair == idx ? [idx] : [idx, pair];
+      if (removed + targets.length > holes) continue;
+
+      final backups = <int>[];
+      for (final target in targets) {
+        visited.add(target);
+        final r = target ~/ 9;
+        final c = target % 9;
+        backups.add(b.at(r, c).value);
+        b.at(r, c).value = 0;
+      }
+
       if (solver.countSolutions(b) == 1) {
-        holes--;
+        removed += targets.length;
       } else {
-        b.at(r, c).value = backup;
+        for (var i = 0; i < targets.length; i++) {
+          final r = targets[i] ~/ 9;
+          final c = targets[i] % 9;
+          b.at(r, c).value = backups[i];
+        }
       }
     }
+
     b.markGiven();
     return b;
   }
+
+  int _mirrorIndex(int idx) => 80 - idx;
 
   bool _fill(Board b) {
     for (int r = 0; r < 9; r++) {

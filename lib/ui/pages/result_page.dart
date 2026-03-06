@@ -1,336 +1,154 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../models/game_state.dart';
+import '../../controllers/game_controller.dart';
+import '../../models/app_enums.dart';
 
 class ResultPage extends StatelessWidget {
   const ResultPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.read<GameState>();
-    final res = state.getResult();
-    final previousBest = state.bestScore();
-    final isNewRecord = res['score'] > previousBest;
-    state.saveRecord();
-
-    final colorScheme = Theme.of(context).colorScheme;
+    final result = context.read<GameController>().lastResult;
+    if (result == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Back'),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('遊戲結果'),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-      ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              colorScheme.primary.withValues(alpha: 0.1),
-              colorScheme.secondary.withValues(alpha: 0.1),
+              Color(0xFFEAF7F4),
+              Color(0xFFF7F3E8),
+              Color(0xFFF9FBFD),
             ],
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: isNewRecord
-                          ? Colors.amber.withValues(alpha: 0.15)
-                          : Colors.green.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isNewRecord
-                            ? Colors.amber.withValues(alpha: 0.5)
-                            : Colors.green.withValues(alpha: 0.5),
-                        width: 2,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          isNewRecord ? Icons.emoji_events : Icons.check_circle,
-                          size: 64,
-                          color: isNewRecord ? Colors.amber : Colors.green,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          isNewRecord ? '新紀錄' : '挑戰完成',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: isNewRecord ? Colors.amber : Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _ResultCard(
-                    icon: Icons.star,
-                    iconColor: Colors.amber,
-                    title: '總分',
-                    value: '${res['score']}',
-                    subtitle: '最佳分數: $previousBest',
-                  ),
-                  const SizedBox(height: 16),
-                  const _ScoreRuleCard(),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.timer,
-                          label: '時間',
-                          value: '${res['time']} 秒',
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.lightbulb,
-                          label: '提示',
-                          value: '${res['hints']} 次',
-                          color: Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.close,
-                          label: '錯誤',
-                          value: '${res['mistakes']} 次',
-                          color: Colors.red,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.flash_on,
-                          label: '連擊',
-                          value: '${res['combo']}',
-                          color: Colors.purple,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          icon: Icons.favorite,
-                          label: '剩餘血量',
-                          value: '${res['health']}',
-                          color: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(child: SizedBox()),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          Navigator.popUntil(context, (route) => route.isFirst),
-                      icon: const Icon(Icons.home),
-                      label: const Text('回到首頁'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ScoreRuleCard extends StatelessWidget {
-  const _ScoreRuleCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-        ),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '目前分數規則',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          Text('答對一格: 依難度給 10 / 15 / 20 分'),
-          Text('連擊加成: 每多一連擊 +2 分，最多加到 +10'),
-          Text('答錯一格: 扣 3 分'),
-          Text('使用提示: 扣 5 分並扣 5 點血量'),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResultCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String value;
-  final String subtitle;
-
-  const _ResultCard({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-              color: iconColor.withValues(alpha: 0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 32, color: iconColor),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF0F766E),
+                        Color(0xFF115E59),
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        result.isDaily ? 'Daily Cleared' : 'Board Cleared',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        result.isDaily
+                            ? 'Streak is now ${result.updatedStreak}.'
+                            : 'Clean finish. Ready for another board.',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(height: 18),
+                _StatRow(label: 'Time', value: _formatSeconds(result.elapsedSeconds)),
+                _StatRow(label: 'Mistakes', value: '${result.mistakes}'),
+                _StatRow(label: 'Hints', value: '${result.hintsUsed}'),
+                _StatRow(label: 'Difficulty', value: result.difficulty.label),
+                if (result.isDaily)
+                  _StatRow(
+                    label: 'Challenge Date',
+                    value: result.challengeDateKey ?? '-',
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.5),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () =>
+                        Navigator.of(context).popUntil((route) => route.isFirst),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF0F766E),
+                    ),
+                    child: const Text('Back To Home'),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
+
+  static String _formatSeconds(int total) {
+    final minutes = (total ~/ 60).toString().padLeft(2, '0');
+    final seconds = (total % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
 }
 
-class _StatBox extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatBox({
-    required this.icon,
+class _StatRow extends StatelessWidget {
+  const _StatRow({
     required this.label,
     required this.value,
-    required this.color,
   });
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDDE6E6)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha: 0.7),
+              color: Colors.black.withValues(alpha: 0.58),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
