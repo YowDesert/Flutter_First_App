@@ -16,7 +16,7 @@
 
 ## GitHub 連結
 
-- Repository: `https://github.com/<your-account>/<your-repo>`
+- Repository: `https://github.com/YowDesert/Flutter_First_App_Sudoku`
 
 ## App 操作 GIF（預留）
 
