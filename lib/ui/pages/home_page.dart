@@ -71,10 +71,7 @@ class _HomePageState extends State<HomePage>
                         children: [
                           _HomeTopHeader(
                             coins: controller.coins,
-                            onInfoTap: () => _showHint(
-                              context,
-                              'Daily reset at local midnight. Keep the streak alive.',
-                            ),
+                            onInfoTap: () => _openInfoSheet(context, controller),
                             onShopTap: () => _openShop(context),
                           ),
                           const SizedBox(height: 20),
@@ -112,16 +109,7 @@ class _HomePageState extends State<HomePage>
                             },
                           ),
                           const SizedBox(height: 16),
-                          _ProgressHubCard(
-                            totalGames: controller.playerStats.totalGames,
-                            completedDays:
-                                controller.dailyProgress.completedDates.length,
-                            hapticEnabled: controller.settings.hapticOn,
-                            onOpenStats: () => _openStats(context),
-                            onOpenCalendar: () => _openDailyCalendar(context),
-                          ),
                           if (hasActiveSession && session != null) ...[
-                            const SizedBox(height: 16),
                             _ContinueLastGameCard(
                               session: session,
                               elapsedLabel: _formatDuration(
@@ -130,7 +118,16 @@ class _HomePageState extends State<HomePage>
                               hapticEnabled: controller.settings.hapticOn,
                               onResume: () => _openGame(context),
                             ),
+                            const SizedBox(height: 16),
                           ],
+                          _ProgressHubCard(
+                            totalGames: controller.playerStats.totalGames,
+                            completedDays:
+                                controller.dailyProgress.completedDates.length,
+                            hapticEnabled: controller.settings.hapticOn,
+                            onOpenStats: () => _openStats(context),
+                            onOpenCalendar: () => _openDailyCalendar(context),
+                          ),
                         ],
                       ),
                     ),
@@ -168,15 +165,77 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  void _showHint(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(milliseconds: 1400),
-        ),
-      );
+  void _openInfoSheet(BuildContext context, GameController controller) {
+    final dailyMax = controller.dailyBaseCoins + controller.streakBonusCap;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        final palette = GameTheme.ui(sheetContext);
+        return SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Rule Guide',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: palette.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'How rewards and difficulties work right now.',
+                  style: GameTheme.modeBody(sheetContext),
+                ),
+                const SizedBox(height: 14),
+                _GuideLine(
+                  icon: Icons.query_stats_rounded,
+                  tint: palette.quickAccent,
+                  title: 'Scoring',
+                  description:
+                      'There is no single score formula yet. Results currently track time, mistakes, and hints. Best time is recorded per mode.',
+                ),
+                const SizedBox(height: 8),
+                _GuideLine(
+                  icon: Icons.monetization_on_rounded,
+                  tint: palette.successAccent,
+                  title: 'Coins',
+                  description:
+                      'Quick rewards: Easy +${controller.quickEasyCoins}, Medium +${controller.quickMediumCoins}. Daily first clear: +${controller.dailyBaseCoins} plus streak bonus (+${controller.streakBonusPerStep} per day, capped at +${controller.streakBonusCap}, max +$dailyMax).',
+                ),
+                const SizedBox(height: 8),
+                _GuideLine(
+                  icon: Icons.extension_rounded,
+                  tint: palette.dailyAccent,
+                  title: 'Difficulty',
+                  description:
+                      'Quick Run currently supports Easy and Medium with different puzzle pools. Medium is generally tougher and pays more. Hard is locked for now.',
+                ),
+                const SizedBox(height: 8),
+                _GuideLine(
+                  icon: Icons.calendar_today_rounded,
+                  tint: palette.hintAccent,
+                  title: 'Daily Reset',
+                  description:
+                      'Daily rewards reset at local midnight. Replaying the same date after claiming will not grant extra daily coins.',
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _todayKey() {
@@ -486,6 +545,71 @@ class _QuickRunCard extends StatelessWidget {
             onPressed: onStart,
             gradient: palette.secondaryButtonGradient,
             expanded: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideLine extends StatelessWidget {
+  const _GuideLine({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = GameTheme.ui(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.64),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tint.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: tint),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GameTheme.chipText(context).copyWith(
+                    color: palette.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: GameTheme.modeBody(context).copyWith(
+                    color: palette.textMuted,
+                    fontSize: 12.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

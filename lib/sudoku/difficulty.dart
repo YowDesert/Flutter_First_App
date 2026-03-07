@@ -20,8 +20,8 @@ extension DifficultyX on Difficulty {
       case Difficulty.easy:
         return const DifficultyConfig(
           label: 'Easy',
-          description: 'Beginner-friendly board.',
-          holes: 38,
+          description: 'Beginner-friendly board with more givens.',
+          holes: 34,
           useSymmetry: false,
         );
       case Difficulty.medium:

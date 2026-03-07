@@ -109,6 +109,11 @@ class GameController extends ChangeNotifier {
   bool get canRedo => _redoStack.isNotEmpty;
   int get hintCount => _session?.hintsUsed ?? 0;
   int? get hintLimit => _hintLimit;
+  int get quickEasyCoins => _quickEasyCoins;
+  int get quickMediumCoins => _quickMediumCoins;
+  int get dailyBaseCoins => _dailyBaseCoins;
+  int get streakBonusPerStep => _streakBonusPerStep;
+  int get streakBonusCap => _streakBonusCap;
   int? get remainingHints {
     final current = _session;
     final limit = _hintLimit;

@@ -590,9 +590,26 @@ void _openSettings(BuildContext context, GameController controller) {
                   spacing: 8,
                   runSpacing: 8,
                   children: ErrorMode.values.map((mode) {
+                    final isSelected = settings.errorMode == mode;
                     return ChoiceChip(
-                      label: Text(mode.label),
-                      selected: settings.errorMode == mode,
+                      label: Text(
+                        mode.label,
+                        style: GameTheme.chipText(context).copyWith(
+                          color: isSelected
+                              ? palette.textPrimary
+                              : palette.textMuted,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor:
+                          palette.quickAccent.withValues(alpha: 0.26),
+                      backgroundColor: Colors.white.withValues(alpha: 0.88),
+                      checkmarkColor: palette.textPrimary,
+                      side: BorderSide(
+                        color: isSelected
+                            ? palette.quickAccent.withValues(alpha: 0.62)
+                            : palette.panelStroke,
+                      ),
                       onSelected: (_) {
                         controller.updateErrorMode(mode);
                         setState(() {});
