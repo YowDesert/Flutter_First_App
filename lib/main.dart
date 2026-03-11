@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<GameController>(
         builder: (context, controller, _) {
           return MaterialApp(
-            title: 'Sudoku Loop',
+            title: 'Sudoku',
             debugShowCheckedModeBanner: false,
             theme: GameTheme.buildThemeData(
               themeSkin: controller.equippedTheme,

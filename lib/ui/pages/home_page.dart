@@ -272,7 +272,7 @@ class _HomeTopHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Sudoku Loop', style: GameTheme.title(context)),
+              Text('Sudoku', style: GameTheme.title(context)),
               const SizedBox(height: 6),
               Text(
                 'A bright and chill puzzle menu.',

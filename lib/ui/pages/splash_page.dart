@@ -155,7 +155,7 @@ class _SplashForeground extends StatelessWidget {
         children: [
           _LogoBadge(floatAnimation: floatAnimation),
           const SizedBox(height: 24),
-          Text('Sudoku Loop', style: GameTheme.title(context)),
+          Text('Sudoku', style: GameTheme.title(context)),
           const SizedBox(height: 8),
           Text(
             'Daily Board. Quick Run. Chill Focus.',

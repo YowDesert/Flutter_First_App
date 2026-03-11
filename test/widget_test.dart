@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(MyApp(prefs: prefs));
     await tester.pump(const Duration(milliseconds: 160));
 
-    expect(find.text('Sudoku Loop'), findsOneWidget);
+    expect(find.text('Sudoku'), findsOneWidget);
     expect(find.text('Tap to Start'), findsOneWidget);
   });
 }
